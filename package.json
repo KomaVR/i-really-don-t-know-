@@ -1,17 +1,13 @@
 {
-  "name": "discord-oauth2-vercel",
+  "name": "discord-command-registration",
   "version": "1.0.0",
-  "description": "Vercel serverless OAuth2 handler for Discord",
-  "main": "api/oauth-callback.js",
+  "description": "Script to register Discord slash commands using dotenv",
+  "main": "register-commands.js",
   "scripts": {
-    "start": "vercel dev"
+    "register": "node register-commands.js"
   },
   "dependencies": {
-    "node-fetch": "^2.6.7"
-  },
-  "devDependencies": {},
-  "engines": {
-    "node": "22.x"
-  },
-  "license": "MIT"
+    "dotenv": "^16.0.3",
+    "node-fetch": "^3.2.10"
+  }
 }

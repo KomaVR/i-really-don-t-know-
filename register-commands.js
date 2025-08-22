@@ -1,7 +1,8 @@
 // register-commands.js
-const fetch = require('node-fetch');
-require('dotenv').config();
-// ... rest of your code
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const APPLICATION_ID = process.env.DISCORD_CLIENT_ID;
 const BOT_TOKEN = process.env.BOT_TOKEN; // Your bot token with applications.commands scope

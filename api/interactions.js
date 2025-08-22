@@ -70,19 +70,27 @@ app.get('/api/interactions', (req, res) => {
 
 // Handle POST requests for interactions
 app.post('/interactions', async (req, res) => {
-    const interaction = req.body;
     console.log("POST /interactions route hit!"); // Add this log
+
+    let interaction;
+    try {
+        interaction = JSON.parse(req.body.toString()); // Parse the raw body
+        console.log("Parsed interaction:", interaction); // Log the parsed interaction
+    } catch (error) {
+        console.error("Error parsing JSON:", error);
+        return res.status(400).json({ error: 'Invalid JSON in request body' }); // Explicit 400 with JSON response
+    }
 
     try {
         // PING interaction type (Discord's heartbeat)
         if (interaction.type === 1) {
             console.log("Received PING interaction");
-            return res.json({ type: 1 }); // Respond with a PONG
+            return res.status(200).json({ type: 1 }); // Respond with a PONG and 200 OK
         }
 
         // Application command interaction type (slash commands)
-        if (interaction.type === 2 && interaction.data.name === 'chat') {
-            const prompt = interaction.data.options[0].value;
+        if (interaction.type === 2 && interaction.data?.name === 'chat') { // Added null check for interaction.data
+            const prompt = interaction.data.options?.[0]?.value; // Added null check for interaction.data.options
             console.log(`Received chat command with prompt: ${prompt}`);
 
             // Call Groq API
@@ -110,12 +118,14 @@ app.post('/interactions', async (req, res) => {
                 const reply = groqData?.choices?.[0]?.message?.content || 'No reply from Groq API.';
 
                 // Respond to Discord with the Groq API's reply
-                return res.json({
+                const responseData = {
                     type: 4, // Indicates a response to the command
                     data: {
                         content: reply,
                     },
-                });
+                };
+                console.log("Discord Response:", responseData); // Log the response
+                return res.status(200).json(responseData); // Explicit 200 OK and log the response
 
             } catch (groqError) {
                 console.error("Error calling Groq API:", groqError);
@@ -125,11 +135,11 @@ app.post('/interactions', async (req, res) => {
 
         // Unknown interaction type
         console.log("Unknown interaction type");
-        return res.status(400).send('Unknown interaction type');
+        return res.status(400).json({ error: 'Unknown interaction type' }); // Explicit 400 with JSON response
 
     } catch (error) {
         console.error("General error handling interaction:", error);
-        return res.status(500).send('Internal Server Error');
+        return res.status(500).json({ error: 'Internal Server Error' }); // Explicit 500 with JSON response
     }
 });
 

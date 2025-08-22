@@ -1,0 +1,17 @@
+{
+  "name": "discord-oauth2-vercel",
+  "version": "1.0.0",
+  "description": "Vercel serverless OAuth2 handler for Discord",
+  "main": "api/oauth-callback.js",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": "14.x"
+  },
+  "license": "MIT"
+}

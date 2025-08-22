@@ -57,22 +57,33 @@ app.use(express.urlencoded({ extended: true })); // Consider this if you need UR
 
 // Handle GET request for verification (Discord's initial handshake)
 app.get('/interactions', (req, res) => {
+    console.log("GET /interactions route hit!");  // Add this log
     res.status(200).send('OK'); // Respond with 200 OK
 });
+
+// Handle GET request for verification (Discord's initial handshake)
+app.get('/api/interactions', (req, res) => {
+    console.log("GET /api/interactions route hit!");  // Add this log
+    res.status(200).send('OK'); // Respond with 200 OK
+});
+
 
 // Handle POST requests for interactions
 app.post('/interactions', async (req, res) => {
     const interaction = req.body;
+    console.log("POST /interactions route hit!"); // Add this log
 
     try {
         // PING interaction type (Discord's heartbeat)
         if (interaction.type === 1) {
+            console.log("Received PING interaction");
             return res.json({ type: 1 }); // Respond with a PONG
         }
 
         // Application command interaction type (slash commands)
         if (interaction.type === 2 && interaction.data.name === 'chat') {
             const prompt = interaction.data.options[0].value;
+            console.log(`Received chat command with prompt: ${prompt}`);
 
             // Call Groq API
             try {
@@ -113,6 +124,7 @@ app.post('/interactions', async (req, res) => {
         }
 
         // Unknown interaction type
+        console.log("Unknown interaction type");
         return res.status(400).send('Unknown interaction type');
 
     } catch (error) {
@@ -123,5 +135,6 @@ app.post('/interactions', async (req, res) => {
 
 // Export the handler function (ES Module style)
 export default async (req, res) => {
+    console.log("Entry point hit!"); // Add this log
     await app(req, res); // Pass the request and response to the Express app
 };

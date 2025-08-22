@@ -63,7 +63,7 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
             'Authorization': `Bearer ${GROQ_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "mixtral-8x7b-32768",
+            model: "deepseek-r1-distill-llama-70b",
             messages: [{ role: "user", content: prompt }],
             max_tokens: 1024,
           }),

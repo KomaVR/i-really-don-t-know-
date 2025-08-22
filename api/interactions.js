@@ -56,18 +56,19 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
       const prompt = options?.[0]?.value;
 
       try {
-        const groqResponse = await fetch('https://api.groq.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
             model: "deepseek-r1-distill-llama-70b",
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 1024,
-          }),
-        });
+            max_completion_tokens: 1024, // total token limit for response
+        }),
+     });
+
 
         if (!groqResponse.ok) {
           return res.json({

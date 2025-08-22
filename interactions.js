@@ -27,11 +27,17 @@ function verifyKey(req, res, buf, encoding) {
   );
 
   if (!isVerified) {
-    res.status(401).send('Bad request signature');
+    return res.status(401).send('Bad request signature');
   }
 }
 
 app.use(express.json({ verify: verifyKey }));
+
+// Handle GET request for verification
+app.get('/interactions', (req, res) => {
+  // Respond with 200 OK to verify the endpoint
+  res.status(200).send('OK');
+});
 
 app.post('/interactions', async (req, res) => {
   const interaction = req.body;

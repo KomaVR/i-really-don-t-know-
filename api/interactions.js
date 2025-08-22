@@ -40,7 +40,7 @@ function verifyDiscordRequest(req, res, next) {
 }
 
 // Discord will only call POST /interactions
-app.post('/interactions', verifyDiscordRequest, async (req, res) => {
+app.post('api/interactions', verifyDiscordRequest, async (req, res) => {
   const { type, data } = req.body;
 
   // 1) PING = handshake

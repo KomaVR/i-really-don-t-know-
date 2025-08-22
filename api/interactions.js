@@ -85,6 +85,7 @@ app.post('/interactions', async (req, res) => {
         // PING interaction type (Discord's heartbeat)
         if (interaction.type === 1) {
             console.log("Received PING interaction");
+            res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
             return res.status(200).json({ type: 1 }); // Respond with a PONG and 200 OK
         }
 
@@ -125,6 +126,7 @@ app.post('/interactions', async (req, res) => {
                     },
                 };
                 console.log("Discord Response:", responseData); // Log the response
+                res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
                 return res.status(200).json(responseData); // Explicit 200 OK and log the response
 
             } catch (groqError) {
@@ -135,6 +137,7 @@ app.post('/interactions', async (req, res) => {
 
         // Unknown interaction type
         console.log("Unknown interaction type");
+        res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
         return res.status(400).json({ error: 'Unknown interaction type' }); // Explicit 400 with JSON response
 
     } catch (error) {

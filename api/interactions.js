@@ -6,7 +6,6 @@ import fetch from 'node-fetch';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -20,7 +19,11 @@ function verifyKey(req, res, buf, encoding) {
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
 
+    console.log("Signature:", signature);
+    console.log("Timestamp:", timestamp);
+
     if (!signature || !timestamp) {
+        console.log("Missing signature or timestamp headers");
         return res.status(401).send('Invalid request signature: Missing headers');
     }
 
@@ -29,19 +32,27 @@ function verifyKey(req, res, buf, encoding) {
         const publicKey = Buffer.from(PUBLIC_KEY, 'hex');
         const signatureBuffer = Buffer.from(signature, 'hex');
 
+        console.log("Message:", message.toString('utf-8'));
+        console.log("Public Key:", publicKey.toString('hex'));
+        console.log("Signature Buffer:", signatureBuffer.toString('hex'));
+
         const isVerified = crypto.verify(null, message, publicKey, signatureBuffer);
 
+        console.log("Signature Verified:", isVerified);
 
         if (!isVerified) {
+            console.log("Signature mismatch");
             return res.status(401).send('Invalid request signature: Signature mismatch');
         }
     } catch (error) {
         console.error("Signature verification error:", error);
+        console.error("Error Stack:", error.stack); // Log the stack trace
         return res.status(400).send('Invalid request: Signature verification failed'); // More informative error
     }
 }
 
-app.use(express.json({ verify: verifyKey }));
+app.use(express.raw({ type: 'application/json', verify: verifyKey })); // Verify signature *before* parsing JSON
+//app.use(express.json({ verify: verifyKey })); // Verify signature *before* parsing JSON
 app.use(express.urlencoded({ extended: true })); // Consider this if you need URL-encoded data
 
 // Handle GET request for verification (Discord's initial handshake)
@@ -110,6 +121,7 @@ app.post('/interactions', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-});
+// Export the handler function (ES Module style)
+export default async (req, res) => {
+    await app(req, res); // Pass the request and response to the Express app
+};

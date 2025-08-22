@@ -39,8 +39,8 @@ function verifyDiscordRequest(req, res, next) {
   }
 }
 
-// Discord will only call POST /interactions
-app.post('api/interactions', verifyDiscordRequest, async (req, res) => {
+// ✅ Must include leading slash
+app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
   const { type, data } = req.body;
 
   // 1) PING = handshake

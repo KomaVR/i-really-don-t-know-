@@ -6,6 +6,7 @@
   "scripts": {
     "register": "node register-commands.js"
   },
+  "type": "module",
   "dependencies": {
     "dotenv": "^16.0.3",
     "node-fetch": "^3.2.10"

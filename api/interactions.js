@@ -36,7 +36,10 @@ function verifyKey(req, res, buf, encoding) {
         console.log("Public Key:", publicKey.toString('hex'));
         console.log("Signature Buffer:", signatureBuffer.toString('hex'));
 
-        const isVerified = crypto.verify(null, message, publicKey, signatureBuffer);
+        // **Revised Signature Verification**
+        const verifier = crypto.createVerify('sha256'); // Or 'sha512', try both
+        verifier.update(message);
+        const isVerified = verifier.verify(publicKey, signatureBuffer);
 
         console.log("Signature Verified:", isVerified);
 

@@ -1,14 +1,17 @@
 {
-  "name": "discord-command-registration",
+  "name": "my-discord-bot",
   "version": "1.0.0",
-  "description": "Script to register Discord slash commands using dotenv",
-  "main": "register-commands.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "register": "node register-commands.js"
+    "start": "node index.js"  // Or whatever your start script is
   },
-  "type": "module",
   "dependencies": {
-    "dotenv": "^16.0.3",
-    "node-fetch": "^3.2.10"
-  }
+    "express": "^4.17.1",  // Use the latest version or a specific version
+    "crypto": "^1.0.1",      // Add crypto if it's not already there
+    "dotenv": "^16.0.0",     // Add dotenv if it's not already there
+    "node-fetch": "^3.0.0"   // Add node-fetch if it's not already there
+    // Add any other dependencies you're using
+  },
+  "devDependencies": {}
 }

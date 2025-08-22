@@ -4,14 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"  // Or whatever your start script is
-  },
+    "start": "node index.js"  
   "dependencies": {
-    "express": "^4.17.1",  // Use the latest version or a specific version
-    "crypto": "^1.0.1",      // Add crypto if it's not already there
-    "dotenv": "^16.0.0",     // Add dotenv if it's not already there
-    "node-fetch": "^3.0.0"   // Add node-fetch if it's not already there
-    // Add any other dependencies you're using
+    "express": "^4.17.1",  
+    "crypto": "^1.0.1",      
+    "dotenv": "^16.0.0",     
+    "node-fetch": "^3.0.0"
   },
   "devDependencies": {}
-}

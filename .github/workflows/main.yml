@@ -1,0 +1,36 @@
+name: Command Registration Workflow
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # every 5 minutes
+  workflow_dispatch:      # manual trigger
+
+jobs:
+  register-commands:
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: command-registration
+      cancel-in-progress: true
+
+    env:
+      DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Register slash commands globally
+        run: node register-commands.js
+        env:
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

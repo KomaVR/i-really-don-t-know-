@@ -137,7 +137,13 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
         if (!groqResponse.ok) {
           return res.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-            data: { content: `Groq API Error: ${groqResponse.status} ${groqResponse.statusText}` }
+            data: {
+              embeds: [{
+                title: 'Error',
+                description: `Groq API Error: ${groqResponse.status} ${groqResponse.statusText}`,
+                color: 0xFF0000, // Red for error
+              }]
+            }
           });
         }
 
@@ -146,123 +152,148 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
 
         return res.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: { content: reply },
+          data: {
+            embeds: [{
+              title: `${name.charAt(0).toUpperCase() + name.slice(1)} Response`,
+              description: reply,
+              color: 0x00FFFF, // Cyan
+              footer: { text: 'Powered by Groq AI' },
+            }]
+          }
         });
 
       } catch (err) {
         return res.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: { content: `Error calling Groq API: ${err.message}` }
+          data: {
+            embeds: [{
+              title: 'Error',
+              description: `Error calling Groq API: ${err.message}`,
+              color: 0xFF0000,
+            }]
+          }
         });
       }
     } else {
       // Non-AI commands
-      let reply = '';
+      let embed = {
+        title: `${name.charAt(0).toUpperCase() + name.slice(1)} Response`,
+        color: 0x00FFFF,
+        footer: { text: 'Powered by Grok' },
+      };
       try {
         if (name === 'catfact') {
           const res = await fetch('https://catfact.ninja/fact');
           const data = await res.json();
-          reply = data.fact;
+          embed.description = data.fact;
         } else if (name === 'dogimage') {
           const res = await fetch('https://dog.ceo/api/breeds/image/random');
           const data = await res.json();
-          reply = `Here's a random dog image: ${data.message}`;
+          embed.title = 'Random Dog Image';
+          embed.description = "Here's a random dog image:";
+          embed.image = { url: data.message };
         } else if (name === 'bored') {
           const res = await fetch('https://www.boredapi.com/api/activity');
           const data = await res.json();
-          reply = data.activity;
+          embed.description = data.activity;
         } else if (name === 'agify') {
           if (!prompt) {
-            reply = 'Please provide a name.';
+            embed.description = 'Please provide a name.';
           } else {
             const res = await fetch(`https://api.agify.io?name=${encodeURIComponent(prompt)}`);
             const data = await res.json();
-            reply = `Estimated age for ${data.name}: ${data.age}`;
+            embed.description = `Estimated age for ${data.name}: ${data.age}`;
           }
         } else if (name === 'genderize') {
           if (!prompt) {
-            reply = 'Please provide a name.';
+            embed.description = 'Please provide a name.';
           } else {
             const res = await fetch(`https://api.genderize.io?name=${encodeURIComponent(prompt)}`);
             const data = await res.json();
-            reply = `Gender for ${data.name}: ${data.gender} (probability: ${data.probability})`;
+            embed.description = `Gender for ${data.name}: ${data.gender} (probability: ${data.probability})`;
           }
         } else if (name === 'nationalize') {
           if (!prompt) {
-            reply = 'Please provide a name.';
+            embed.description = 'Please provide a name.';
           } else {
             const res = await fetch(`https://api.nationalize.io?name=${encodeURIComponent(prompt)}`);
             const data = await res.json();
             if (data.country && data.country.length > 0) {
-              reply = `Most likely nationality for ${data.name}: ${data.country[0].country_id} (probability: ${data.country[0].probability})`;
+              embed.description = `Most likely nationality for ${data.name}: ${data.country[0].country_id} (probability: ${data.country[0].probability})`;
             } else {
-              reply = 'No nationality data found.';
+              embed.description = 'No nationality data found.';
             }
           }
         } else if (name === 'randomjoke') {
           const res = await fetch('https://official-joke-api.appspot.com/random_joke');
           const data = await res.json();
-          reply = `${data.setup} ... ${data.punchline}`;
+          embed.description = `${data.setup} ... ${data.punchline}`;
         } else if (name === 'randomuser') {
           const res = await fetch('https://randomuser.me/api/');
           const data = await res.json();
           const user = data.results[0];
-          reply = `Random user: ${user.name.first} ${user.name.last}, Email: ${user.email}, Location: ${user.location.city}`;
+          embed.description = `Random user: ${user.name.first} ${user.name.last}, Email: ${user.email}, Location: ${user.location.city}`;
         } else if (name === 'pokemon') {
           const poke = prompt || 'pikachu';
           const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${encodeURIComponent(poke.toLowerCase())}`);
           if (!res.ok) {
-            reply = 'Pokemon not found.';
+            embed.description = 'Pokemon not found.';
           } else {
             const data = await res.json();
-            reply = `Pokemon: ${data.name}, Height: ${data.height} dm, Weight: ${data.weight} hg`;
+            embed.description = `Pokemon: ${data.name}, Height: ${data.height} dm, Weight: ${data.weight} hg`;
           }
         } else if (name === 'numberfact') {
           const num = prompt || 'random';
           const res = await fetch(`http://numbersapi.com/${encodeURIComponent(num)}`);
-          reply = await res.text();
+          embed.description = await res.text();
         } else if (name === 'bitcoinprice') {
           const res = await fetch('https://api.coindesk.com/v1/bpi/currentprice.json');
           const data = await res.json();
-          reply = `Bitcoin price: $${data.bpi.USD.rate}`;
+          embed.description = `Bitcoin price: $${data.bpi.USD.rate}`;
         } else if (name === 'randomadvice') {
           const res = await fetch('https://api.adviceslip.com/advice');
           const data = await res.json();
-          reply = data.slip.advice;
+          embed.description = data.slip.advice;
         } else if (name === 'randomquote') {
           const res = await fetch('https://zenquotes.io/api/random');
           const data = await res.json();
           const q = data[0];
-          reply = `"${q.q}" - ${q.a}`;
+          embed.description = `"${q.q}" - ${q.a}`;
         } else if (name === 'chucknorris') {
           const res = await fetch('https://api.chucknorris.io/jokes/random');
           const data = await res.json();
-          reply = data.value;
+          embed.description = data.value;
         } else if (name === 'httpcat') {
           const code = prompt || '200';
-          reply = `HTTP ${code}: ![HTTP Cat](https://http.cat/${code})`;
+          embed.title = `HTTP Cat ${code}`;
+          embed.image = { url: `https://http.cat/${code}` };
         } else if (name === 'randomfox') {
           const res = await fetch('https://randomfox.ca/floof/');
           const data = await res.json();
-          reply = `Random fox: ${data.image}`;
+          embed.title = 'Random Fox';
+          embed.description = 'Random fox image:';
+          embed.image = { url: data.image };
         } else if (name === 'robohash') {
           const text = prompt || 'grok';
-          reply = `Robohash image: https://robohash.org/${encodeURIComponent(text)}`;
+          const url = `https://robohash.org/${encodeURIComponent(text)}`;
+          embed.title = 'Robohash Image';
+          embed.description = `Robohash for "${text}":`;
+          embed.image = { url };
         } else if (name === 'dadjoke') {
           const res = await fetch('https://icanhazdadjoke.com/', {
             headers: { 'Accept': 'application/json' }
           });
           const data = await res.json();
-          reply = data.joke;
+          embed.description = data.joke;
         } else if (name === 'coinflip') {
-          reply = Math.random() < 0.5 ? 'Heads!' : 'Tails!';
+          embed.description = Math.random() < 0.5 ? 'Heads!' : 'Tails!';
         } else if (name === 'rolldice') {
           const sides = parseInt(prompt) || 6;
           if (isNaN(sides) || sides < 2) {
-            reply = 'Invalid number of sides.';
+            embed.description = 'Invalid number of sides.';
           } else {
             const roll = Math.floor(Math.random() * sides) + 1;
-            reply = `You rolled a ${roll} on a ${sides}-sided die.`;
+            embed.description = `You rolled a ${roll} on a ${sides}-sided die.`;
           }
         } else if (name === 'randomnum') {
           let min = 1, max = 100;
@@ -272,125 +303,134 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
               min = parts[0];
               max = parts[1];
             } else {
-              reply = 'Invalid range. Use format min-max.';
+              embed.description = 'Invalid range. Use format min-max.';
               throw new Error('Invalid input'); // to skip
             }
           }
           const num = Math.floor(Math.random() * (max - min + 1)) + min;
-          reply = `Random number: ${num}`;
+          embed.description = `Random number: ${num}`;
         } else if (name === 'currenttime') {
-          reply = new Date().toUTCString();
+          embed.description = new Date().toUTCString();
         } else if (name === 'echo') {
-          reply = prompt || 'Nothing to echo.';
+          embed.description = prompt || 'Nothing to echo.';
         } else if (name === 'uppercase') {
-          reply = prompt.toUpperCase() || 'Provide text to convert.';
+          embed.description = prompt.toUpperCase() || 'Provide text to convert.';
         } else if (name === 'lowercase') {
-          reply = prompt.toLowerCase() || 'Provide text to convert.';
+          embed.description = prompt.toLowerCase() || 'Provide text to convert.';
         } else if (name === 'reverse') {
-          reply = prompt.split('').reverse().join('') || 'Provide text to reverse.';
+          embed.description = prompt.split('').reverse().join('') || 'Provide text to reverse.';
         } else if (name === 'wordcount') {
           const count = prompt ? prompt.trim().split(/\s+/).length : 0;
-          reply = `Word count: ${count}`;
+          embed.description = `Word count: ${count}`;
         } else if (name === 'charcount') {
           const count = prompt ? prompt.length : 0;
-          reply = `Character count: ${count}`;
+          embed.description = `Character count: ${count}`;
         } else if (name === 'password') {
           const len = parseInt(prompt) || 12;
           if (isNaN(len) || len < 1) {
-            reply = 'Invalid length.';
+            embed.description = 'Invalid length.';
           } else {
             const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
             let pass = '';
             for (let i = 0; i < len; i++) {
               pass += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-            reply = `Generated password: ${pass}`;
+            embed.description = `Generated password: ${pass}`;
           }
         } else if (name === 'qrcode') {
           if (!prompt) {
-            reply = 'Provide text for QR code.';
+            embed.description = 'Provide text for QR code.';
           } else {
-            reply = `QR Code: https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(prompt)}&size=200x200`;
+            const url = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(prompt)}&size=200x200`;
+            embed.title = 'QR Code';
+            embed.description = `QR Code for "${prompt}":`;
+            embed.image = { url };
           }
         } else if (name === 'shortenurl') {
           if (!prompt) {
-            reply = 'Provide a URL to shorten.';
+            embed.description = 'Provide a URL to shorten.';
           } else {
             const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(prompt)}`);
-            reply = `Shortened URL: ${await res.text()}`;
+            embed.description = `Shortened URL: ${await res.text()}`;
           }
         } else if (name === 'defineword') {
           if (!prompt) {
-            reply = 'Provide a word to define.';
+            embed.description = 'Provide a word to define.';
           } else {
             const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(prompt)}`);
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
               const def = data[0].meanings[0].definitions[0].definition;
-              reply = `Definition of ${prompt}: ${def}`;
+              embed.description = `Definition of ${prompt}: ${def}`;
             } else {
-              reply = 'Word not found.';
+              embed.description = 'Word not found.';
             }
           }
         } else if (name === 'randomcolor') {
           const res = await fetch('http://www.colourlovers.com/api/colors/random?format=json');
           const data = await res.json();
           const color = data[0];
-          reply = `Random color: ${color.title} - #${color.hex}`;
+          embed.description = `Random color: ${color.title} - #${color.hex}`;
+          embed.color = parseInt(color.hex, 16);
         } else if (name === 'publicholidays') {
           const year = new Date().getFullYear();
           const country = prompt || 'US';
           const res = await fetch(`https://date.nager.at/api/v3/publicholidays/${year}/${encodeURIComponent(country)}`);
           if (!res.ok) {
-            reply = 'Invalid country code.';
+            embed.description = 'Invalid country code.';
           } else {
             const data = await res.json();
-            reply = data.map(h => `${h.date}: ${h.name}`).join('\n') || 'No holidays found.';
+            embed.description = data.map(h => `${h.date}: ${h.name}`).join('\n') || 'No holidays found.';
           }
         } else if (name === 'isslocation') {
           const res = await fetch('http://api.open-notify.org/iss-now.json');
           const data = await res.json();
-          reply = `ISS current position: Latitude ${data.iss_position.latitude}, Longitude ${data.iss_position.longitude}`;
+          embed.description = `ISS current position: Latitude ${data.iss_position.latitude}, Longitude ${data.iss_position.longitude}`;
         } else if (name === 'weather') {
           const city = prompt || 'London';
           const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=3`);
-          reply = `Weather in ${city}: ${await res.text()}`;
+          embed.description = `Weather in ${city}: ${await res.text()}`;
         } else if (name === 'randomduck') {
           const res = await fetch('https://random-d.uk/api/random');
           const data = await res.json();
-          reply = `Random duck: ${data.url}`;
+          embed.title = 'Random Duck';
+          embed.description = 'Random duck image:';
+          embed.image = { url: data.url };
         } else if (name === 'picsum') {
           let [width, height] = prompt ? prompt.split('x').map(Number) : [200, 300];
           if (isNaN(width) || isNaN(height)) {
-            reply = 'Invalid dimensions. Use widthxheight.';
+            embed.description = 'Invalid dimensions. Use widthxheight.';
           } else {
-            reply = `Random image: https://picsum.photos/${width}/${height}`;
+            const url = `https://picsum.photos/${width}/${height}`;
+            embed.title = 'Random Picsum Image';
+            embed.description = `Random image (${width}x${height}):`;
+            embed.image = { url };
           }
         } else if (name === 'affirmation') {
           const res = await fetch('https://www.affirmations.dev/');
           const data = await res.json();
-          reply = data.affirmation;
+          embed.description = data.affirmation;
         } else if (name === 'ispalindrome') {
           if (!prompt) {
-            reply = 'Provide text to check.';
+            embed.description = 'Provide text to check.';
           } else {
             const cleaned = prompt.toLowerCase().replace(/[^a-z0-9]/g, '');
             const reversed = cleaned.split('').reverse().join('');
-            reply = cleaned === reversed ? `${prompt} is a palindrome.` : `${prompt} is not a palindrome.`;
+            embed.description = cleaned === reversed ? `${prompt} is a palindrome.` : `${prompt} is not a palindrome.`;
           }
         } else if (name === 'factorial') {
           const n = parseInt(prompt);
           if (isNaN(n) || n < 0) {
-            reply = 'Provide a non-negative integer.';
+            embed.description = 'Provide a non-negative integer.';
           } else {
             let fact = 1;
             for (let i = 2; i <= n; i++) fact *= i;
-            reply = `Factorial of ${n} is ${fact}.`;
+            embed.description = `Factorial of ${n} is ${fact}.`;
           }
         } else if (name === 'fibonacci') {
           const n = parseInt(prompt) || 10;
           if (isNaN(n) || n < 1) {
-            reply = 'Provide a positive integer.';
+            embed.description = 'Provide a positive integer.';
           } else {
             let a = 0, b = 1, seq = [0, 1];
             for (let i = 2; i < n; i++) {
@@ -399,12 +439,12 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
               b = next;
               seq.push(next);
             }
-            reply = `First ${n} Fibonacci numbers: ${seq.join(', ')}`;
+            embed.description = `First ${n} Fibonacci numbers: ${seq.join(', ')}`;
           }
         } else if (name === 'isprime') {
           const n = parseInt(prompt);
           if (isNaN(n) || n < 2) {
-            reply = 'Provide an integer greater than 1.';
+            embed.description = 'Provide an integer greater than 1.';
           } else {
             let isPrime = true;
             for (let i = 2; i <= Math.sqrt(n); i++) {
@@ -413,56 +453,71 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
                 break;
               }
             }
-            reply = `${n} is ${isPrime ? '' : 'not '}a prime number.`;
+            embed.description = `${n} is ${isPrime ? '' : 'not '}a prime number.`;
           }
         } else if (name === 'binary') {
           if (!prompt) {
-            reply = 'Provide text to convert.';
+            embed.description = 'Provide text to convert.';
           } else {
-            reply = prompt.split('').map(c => c.charCodeAt(0).toString(2)).join(' ');
+            embed.description = prompt.split('').map(c => c.charCodeAt(0).toString(2)).join(' ');
           }
         } else if (name === 'hex') {
           if (!prompt) {
-            reply = 'Provide text to convert.';
+            embed.description = 'Provide text to convert.';
           } else {
-            reply = prompt.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
+            embed.description = prompt.split('').map(c => c.charCodeAt(0).toString(16)).join(' ');
           }
         } else if (name === 'pi') {
           const digits = parseInt(prompt) || 10;
-          reply = Math.PI.toFixed(digits);
+          embed.description = Math.PI.toFixed(digits);
         } else if (name === 'e') {
           const digits = parseInt(prompt) || 10;
-          reply = Math.E.toFixed(digits);
+          embed.description = Math.E.toFixed(digits);
         } else if (name === 'placebear') {
           let [width, height] = prompt ? prompt.split('x').map(Number) : [200, 300];
           if (isNaN(width) || isNaN(height)) {
-            reply = 'Invalid dimensions. Use widthxheight.';
+            embed.description = 'Invalid dimensions. Use widthxheight.';
           } else {
-            reply = `Bear placeholder: https://placebear.com/${width}/${height}`;
+            const url = `https://placebear.com/${width}/${height}`;
+            embed.title = 'Bear Placeholder';
+            embed.description = `Bear image (${width}x${height}):`;
+            embed.image = { url };
           }
         } else if (name === 'randomanime') {
           const res = await fetch('https://api.jikan.moe/v4/random/anime');
           const data = await res.json();
           const anime = data.data;
-          reply = `Random anime: ${anime.title} - Score: ${anime.score}`;
+          embed.description = `Random anime: ${anime.title} - Score: ${anime.score}`;
         } else if (name === 'ukholidays') {
           const res = await fetch('https://www.gov.uk/bank-holidays.json');
           const data = await res.json();
           const holidays = data['england-and-wales'].events.map(e => `${e.date}: ${e.title}`).join('\n');
-          reply = `UK Bank Holidays (England & Wales):\n${holidays}`;
+          embed.description = `UK Bank Holidays (England & Wales):\n${holidays}`;
         } else {
           return res.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-            data: { content: "Unknown command." }
+            data: {
+              embeds: [{
+                title: 'Error',
+                description: "Unknown command.",
+                color: 0xFF0000,
+              }]
+            }
           });
         }
       } catch (err) {
-        reply = `Error: ${err.message}`;
+        embed = {
+          title: 'Error',
+          description: `Error: ${err.message}`,
+          color: 0xFF0000,
+        };
       }
 
       return res.json({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: { content: reply || "No response." },
+        data: {
+          embeds: [embed]
+        },
       });
     }
   }

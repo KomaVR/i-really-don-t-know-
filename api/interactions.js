@@ -157,7 +157,7 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
               title: `${name.charAt(0).toUpperCase() + name.slice(1)} Response`,
               description: reply,
               color: 0x00FFFF, // Cyan
-              footer: { text: 'Powered by Groq AI' },
+              footer: { text: 'KXS Bot' },
             }]
           }
         });
@@ -179,7 +179,7 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
       let embed = {
         title: `${name.charAt(0).toUpperCase() + name.slice(1)} Response`,
         color: 0x00FFFF,
-        footer: { text: 'Powered by Grok' },
+        footer: { text: 'KXS Bot' },
       };
       try {
         if (name === 'catfact') {

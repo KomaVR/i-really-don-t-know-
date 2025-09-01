@@ -117,6 +117,85 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
       aiPrompt = `Check if ${prompt} is a palindrome and explain.`;
     } else if (name === 'math') {
       aiPrompt = `Solve the following math problem: ${prompt}`;
+    } else if (name === 'downloadvideo') {
+      res.json({ type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
+
+      try {
+        const url = options?.[0]?.value;
+        if (!url) throw new Error('Please provide a YouTube video URL.');
+
+        const info = await ytdl.getInfo(url);
+        const title = info.videoDetails.title;
+        const duration = info.videoDetails.lengthSeconds;
+        const author = info.videoDetails.author.name;
+
+        const formatOptions = { filter: 'audioandvideo', quality: 'highestvideo' };
+        const format = ytdl.chooseFormat(info.formats, formatOptions);
+
+        const videoStream = ytdl.downloadFromInfo(info, formatOptions);
+
+        const buffers = [];
+        videoStream.on('data', (chunk) => buffers.push(chunk));
+
+        await new Promise((resolve, reject) => {
+          videoStream.on('end', resolve);
+          videoStream.on('error', reject);
+        });
+
+        const buffer = Buffer.concat(buffers);
+        const fileName = `${title.replace(/[\\/:"*?<>|]+/g, '_')}.mp4`;
+
+        const form = new FormData();
+        form.append('files[0]', buffer, fileName);
+        form.append('payload_json', JSON.stringify({
+          content: `Download complete: ${title}`,
+          embeds: [{
+            title: 'Video Details',
+            fields: [
+              { name: 'Title', value: title, inline: true },
+              { name: 'Duration', value: `${duration} seconds`, inline: true },
+              { name: 'Author', value: author, inline: true }
+            ],
+            color: 0x00FFFF,
+            footer: { text: 'KXS Bot' }
+          }],
+          attachments: [{
+            id: '0',
+            description: 'Downloaded video',
+            filename: fileName
+          }]
+        }));
+
+        const followUpUrl = `https://discord.com/api/v10/webhooks/${req.body.application_id}/${req.body.token}/messages/@original`;
+        const patchResponse = await fetch(followUpUrl, {
+          method: 'PATCH',
+          body: form,
+          headers: form.getHeaders()
+        });
+
+        if (!patchResponse.ok) {
+          console.error('Failed to patch message:', await patchResponse.text());
+        }
+      } catch (e) {
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify({
+          embeds: [{
+            title: 'Error',
+            description: `Error: ${e.message}`,
+            color: 0xFF0000,
+            footer: { text: 'KXS Bot' }
+          }]
+        }));
+
+        const followUpUrl = `https://discord.com/api/v10/webhooks/${req.body.application_id}/${req.body.token}/messages/@original`;
+        await fetch(followUpUrl, {
+          method: 'PATCH',
+          body: form,
+          headers: form.getHeaders()
+        });
+      }
+
+      return;
     }
 
     if (aiPrompt) {

@@ -8,10 +8,15 @@ dotenv.config();
 const app = express();
 const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GENIUS_TOKEN = process.env.GENIUS_TOKEN;
 
 if (!PUBLIC_KEY || !GROQ_API_KEY) {
   console.error("Missing DISCORD_PUBLIC_KEY or GROQ_API_KEY");
   process.exit(1);
+}
+
+if (!GENIUS_TOKEN) {
+  console.warn("Warning: GENIUS_TOKEN not set. /lyrics command will fail without it.");
 }
 
 // Capture raw body for signature verification
@@ -320,6 +325,53 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
           } else {
             const data = await res.json();
             embed.description = `Pokemon: ${data.name}, Height: ${data.height} dm, Weight: ${data.weight} hg`;
+          }
+        } else if (name === 'lyrics') {
+          // /lyrics <song name> by <artist>
+          if (!prompt) {
+            embed.description = '❌ Please provide a song name and artist. Example: `Shape of You by Ed Sheeran`';
+          } else {
+            if (!GENIUS_TOKEN) {
+              embed.title = 'Error';
+              embed.description = 'GENIUS_TOKEN is not configured on the server.';
+              embed.color = 0xFF0000;
+            } else {
+              try {
+                const q = encodeURIComponent(prompt);
+                const gRes = await fetch(`https://api.genius.com/search?q=${q}`, {
+                  headers: { 'Authorization': `Bearer ${GENIUS_TOKEN}` },
+                });
+
+                if (!gRes.ok) {
+                  embed.title = 'Error';
+                  embed.description = `Genius API error: ${gRes.status} ${gRes.statusText}`;
+                  embed.color = 0xFF0000;
+                } else {
+                  const gData = await gRes.json();
+                  const hits = gData.response?.hits || [];
+                  if (hits.length === 0) {
+                    embed.description = '❌ No results found for that song.';
+                  } else {
+                    const song = hits[0].result;
+                    embed.title = `${song.title} — ${song.primary_artist.name}`;
+                    embed.description = `[Click here to view the full lyrics on Genius](${song.url})`;
+                    // Use thumbnail if available
+                    if (song.song_art_image_thumbnail_url) {
+                      embed.thumbnail = { url: song.song_art_image_thumbnail_url };
+                    } else if (song.song_art_image_url) {
+                      embed.image = { url: song.song_art_image_url };
+                    }
+                    // Make the embed's title link directly (Discord uses the `url` field on the embed object)
+                    embed.url = song.url;
+                    // Optional: add additional fields if you want (e.g., release date, path)
+                  }
+                }
+              } catch (err) {
+                embed.title = 'Error';
+                embed.description = `Error fetching lyrics: ${err.message}`;
+                embed.color = 0xFF0000;
+              }
+            }
           }
         } else if (name === 'numberfact') {
           const num = prompt || 'random';

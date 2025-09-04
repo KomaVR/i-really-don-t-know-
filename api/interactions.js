@@ -368,7 +368,7 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
                         embed.description = `Pokemon: ${data.name}, Height: ${data.height} dm, Weight: ${data.weight} hg`;
                     }
                 } else if (name === 'lyrics') {
-                    // Handle new slash options: song (required ideally) and artist (optional).
+                    // Handle new slash options: song (preferred) and artist (optional).
                     // Falls back to the old single `prompt` value for backwards compatibility.
                     const songOption = options?.find(opt => opt.name === 'song')?.value;
                     const artistOption = options?.find(opt => opt.name === 'artist')?.value;
@@ -386,26 +386,54 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
                             try {
                                 const query = artist ? `${song} ${artist}` : song;
                                 const q = encodeURIComponent(query);
-                                const gRes = await fetch(`https://api.genius.com/search?q=${q}`, {
+                                const url = `https://api.genius.com/search?q=${q}`;
+
+                                const gRes = await fetch(url, {
                                     headers: {
                                         'Authorization': `Bearer ${GENIUS_TOKEN}`
                                     },
                                 });
 
-                                if (!gRes.ok) {
+                                // read raw text for robust logging/parsing (Genius always returns JSON with meta)
+                                const raw = await gRes.text();
+                                let gData = null;
+                                try {
+                                    gData = JSON.parse(raw);
+                                } catch (e) {
+                                    console.error('[Genius] Failed to parse JSON:', e);
+                                }
+
+                                // prefer meta.status if available, fallback to HTTP status
+                                const metaStatus = gData?.meta?.status;
+                                const metaMessage = gData?.meta?.message;
+                                const status = typeof metaStatus === 'number' ? metaStatus : gRes.status;
+
+                                console.log('[Genius] Request URL:', url);
+                                console.log('[Genius] HTTP status:', gRes.status, gRes.statusText);
+                                console.log('[Genius] Meta status:', metaStatus, 'Meta message:', metaMessage);
+                                console.log('[Genius] Raw body:', raw);
+
+                                if (status === 401 || gRes.status === 401) {
+                                    embed.title = '401 Unauthorized';
+                                    embed.description = 'Genius API returned 401 Unauthorized. Make sure GENIUS_TOKEN is a valid *Client Access Token* (Generate Access Token on https://genius.com/api-clients).';
+                                    if (metaMessage) embed.description += `\n\nGenius message: ${metaMessage}`;
+                                    embed.color = 0xFF0000;
+                                } else if (!gRes.ok || status >= 400) {
                                     embed.title = 'Error';
-                                    embed.description = `Genius API error: ${gRes.status} ${gRes.statusText}`;
+                                    embed.description = `Genius API error: ${status} ${gRes.statusText || ''}${metaMessage ? ` — ${metaMessage}` : ''}`;
                                     embed.color = 0xFF0000;
                                 } else {
-                                    const gData = await gRes.json();
-                                    const hits = gData.response?.hits || [];
+                                    const hits = gData?.response?.hits || [];
                                     if (hits.length === 0) {
                                         embed.description = '❌ No results found for that song.';
                                     } else {
-                                        // Prefer exact artist match when possible
+                                        // Prefer exact artist match when artist provided
                                         let songResult = hits[0].result;
                                         if (artist) {
-                                            const exact = hits.find(h => h.result.primary_artist?.name?.toLowerCase() === artist.toLowerCase());
+                                            const exact = hits.find(h => {
+                                                const name = h.result?.primary_artist?.name || '';
+                                                return name.toLowerCase() === artist.toLowerCase();
+                                            });
                                             if (exact) songResult = exact.result;
                                         }
 
@@ -421,11 +449,12 @@ app.post('/api/interactions', verifyDiscordRequest, async (req, res) => {
                                                 url: songResult.song_art_image_url
                                             };
                                         }
-                                        // Make the embed's title link directly
+                                        // Link the embed title
                                         embed.url = songResult.url;
                                     }
                                 }
                             } catch (err) {
+                                console.error('[Lyrics] Fetch error:', err);
                                 embed.title = 'Error';
                                 embed.description = `Error fetching lyrics: ${err.message}`;
                                 embed.color = 0xFF0000;
